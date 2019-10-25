@@ -22,6 +22,8 @@ module Lita
             handle_user_change
           when "bot_added", "bot_changed"
             handle_bot_change
+          when "member_joined_channel", "member_left_channel"
+            handle_member_change
           when "channel_created", "channel_rename", "group_rename"
             handle_channel_change
           when "error"
@@ -174,6 +176,23 @@ module Lita
           dispatch_message(user)
         end
 
+        def handle_member_change
+          log.debug "#{type} event received from Slack"
+
+          # find
+          user = User.find_by_id(data["user"])
+          room = Room.find_by_id(data["channel"])
+
+          # build a payload
+          payload = {
+            user: user,
+            room: room
+          }
+
+          # trigger the appropriate slack event
+          robot.trigger("slack_#{type}".to_sym, payload)
+        end
+
         def handle_reaction
           log.debug "#{type} event received from Slack"
 
@@ -198,7 +217,7 @@ module Lita
 
         def handle_unknown
           unless data["reply_to"]
-            log.debug("#{type} event received from Slack and will be ignored.")
+            log.debug("#{type} event received from Slack. Response is un-implemented in lita-slack so it will be ignored.")
           end
         end
 
